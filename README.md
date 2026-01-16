@@ -352,6 +352,109 @@
             z-index: 1000;
         }
 
+        /* MODAL OYNA - Konvertor uchun */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-container {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.4s ease;
+        }
+
+        .modal-header {
+            padding: 16px;
+            background: var(--telegram-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .modal-content {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .modal-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        .modal-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .modal-loader {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--telegram-light-gray);
+            border-top-color: var(--telegram-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
         /* RESPONSIVE */
         @media (max-width: 480px) {
             .header {
@@ -371,6 +474,14 @@
                 height: 40px;
                 font-size: 20px;
             }
+
+            .modal-overlay {
+                padding: 10px;
+            }
+
+            .modal-container {
+                border-radius: 16px;
+            }
         }
 
         @media (min-width: 768px) {
@@ -382,6 +493,13 @@
             .card {
                 padding: 20px;
                 border-radius: 16px;
+            }
+
+            .modal-container {
+                width: 90%;
+                height: 90%;
+                max-width: 1200px;
+                max-height: 800px;
             }
         }
 
@@ -409,6 +527,15 @@
             }
             
             .bottom-nav {
+                background: #1c1c1e;
+            }
+
+            .modal-container {
+                background: #1c1c1e;
+                color: white;
+            }
+
+            .modal-loading {
                 background: #1c1c1e;
             }
         }
@@ -519,6 +646,32 @@
         </div>
     </div>
 
+    <!-- MODAL OYNA - Konvertor sahifasi uchun -->
+    <div class="modal-overlay" id="converterModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span>🔄</span>
+                    <span>Fayl Konvertori</span>
+                </div>
+                <button class="modal-close" onclick="closeConverterModal()">×</button>
+            </div>
+            <div class="modal-content">
+                <div class="modal-loading" id="modalLoading">
+                    <div class="modal-loader"></div>
+                    <div>Konvertor yuklanmoqda...</div>
+                </div>
+                <iframe 
+                    class="modal-iframe" 
+                    id="converterIframe"
+                    src=""
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ============================================
         // ASOSIY KOD - TELEGRAM STYLE
@@ -532,6 +685,9 @@
         const authButton = document.getElementById('authButton');
         const authButtonText = document.getElementById('authButtonText');
         const authLoader = document.getElementById('authLoader');
+        const converterModal = document.getElementById('converterModal');
+        const converterIframe = document.getElementById('converterIframe');
+        const modalLoading = document.getElementById('modalLoading');
         
         // Telegram WebApp obyekti
         let tg = window.Telegram?.WebApp;
@@ -609,7 +765,12 @@
             
             tg.BackButton.show();
             tg.BackButton.onClick(function() {
-                if (tg.showConfirm) {
+                // Agar modal ochiq bo'lsa, modalni yopish
+                if (converterModal.style.display === 'flex') {
+                    closeConverterModal();
+                } 
+                // Aks holda dasturdan chiqish
+                else if (tg.showConfirm) {
                     tg.showConfirm('Dasturdan chiqmoqchimisiz?', function(ok) {
                         if (ok) {
                             tg.close();
@@ -770,9 +931,9 @@
                     break;
                     
                 case 'converter':
-                    featureName = "🔄 Fayl Konvertori";
-                    message = `${featureName}\n\nPDF va DOCX fayllarni XLSX formatiga o'tkazish tizimi ishlab chiqilmoqda.\nTez orada foydalanishingiz mumkin bo'ladi.`;
-                    break;
+                    // KONVERTOR MODAL OYNASINI OCHISH
+                    openConverterModal();
+                    return; // Alert chiqarmaymiz
                     
                 case 'auto':
                     featureName = "🤖 Avto Test";
@@ -804,6 +965,135 @@
             // Haptik feedback (agar mavjud bo'lsa)
             vibrate(50);
         }
+        
+        // ============================================
+        // KONVERTOR MODAL FUNKSIYALARI
+        // ============================================
+        
+        function openConverterModal() {
+            console.log("🔄 Konvertor modal oynasi ochilmoqda...");
+            
+            // Modalni ko'rsatish
+            converterModal.style.display = 'flex';
+            
+            // Asosiy sahifani orqaga surish
+            mainApp.style.transform = 'scale(0.95)';
+            mainApp.style.opacity = '0.7';
+            mainApp.style.filter = 'blur(2px)';
+            
+            // Iframe ga manzil berish
+            const converterURL = 'https://shodiyor986.github.io/TestGo2/';
+            converterIframe.src = converterURL;
+            
+            // Yuklashni boshlash
+            modalLoading.style.display = 'flex';
+            
+            // Iframe yuklanganda yuklovchini yashirish
+            converterIframe.onload = function() {
+                console.log("✅ Konvertor sahifasi yuklandi");
+                modalLoading.style.display = 'none';
+                
+                // Telegram WebApp ni iframe ichida ham expand qilish
+                if (tg) {
+                    try {
+                        // Iframe ichidagi Telegram WebApp ni boshqarish
+                        const iframeWindow = converterIframe.contentWindow;
+                        if (iframeWindow && iframeWindow.Telegram && iframeWindow.Telegram.WebApp) {
+                            iframeWindow.Telegram.WebApp.expand();
+                            iframeWindow.Telegram.WebApp.ready();
+                        }
+                    } catch (e) {
+                        console.log("⚠️ Iframe ichidagi Telegramga kirishda xato:", e);
+                    }
+                }
+            };
+            
+            // Iframe yuklashda xato bo'lsa
+            converterIframe.onerror = function() {
+                console.error("❌ Konvertor sahifasi yuklanmadi");
+                modalLoading.innerHTML = `
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+                        <div style="font-size: 16px; margin-bottom: 12px; font-weight: 500;">Sahifa yuklanmadi</div>
+                        <div style="font-size: 14px; color: var(--telegram-gray); margin-bottom: 20px;">
+                            ${converterURL}<br>
+                            Internet aloqasini tekshiring
+                        </div>
+                        <button onclick="retryConverterLoad()" style="
+                            background: var(--telegram-blue);
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-weight: 500;
+                        ">
+                            Qayta urinish
+                        </button>
+                    </div>
+                `;
+            };
+            
+            // Tarixni yangilash (ortga qaytish uchun)
+            window.history.pushState({ modalOpen: true }, '', window.location.href);
+            
+            // Vibratsiya
+            vibrate(30);
+        }
+        
+        function closeConverterModal() {
+            console.log("❌ Konvertor modal oynasi yopilmoqda...");
+            
+            // Modalni yashirish
+            converterModal.style.display = 'none';
+            
+            // Asosiy sahifani normal holatga qaytarish
+            mainApp.style.transform = '';
+            mainApp.style.opacity = '';
+            mainApp.style.filter = '';
+            
+            // Iframe ni tozalash
+            converterIframe.src = '';
+            
+            // Tarixni yangilash
+            if (window.history.state && window.history.state.modalOpen) {
+                window.history.back();
+            }
+            
+            // Vibratsiya
+            vibrate(20);
+        }
+        
+        function retryConverterLoad() {
+            console.log("🔄 Konvertor qayta yuklanmoqda...");
+            modalLoading.innerHTML = `
+                <div class="modal-loader"></div>
+                <div>Konvertor qayta yuklanmoqda...</div>
+            `;
+            modalLoading.style.display = 'flex';
+            converterIframe.src = 'https://shodiyor986.github.io/TestGo2/';
+        }
+        
+        // Browser orqaga tugmasi bosilganda modalni yopish
+        window.addEventListener('popstate', function(event) {
+            if (converterModal.style.display === 'flex') {
+                closeConverterModal();
+            }
+        });
+        
+        // Modal tashqarisiga bosilganda yopish
+        converterModal.addEventListener('click', function(event) {
+            if (event.target === converterModal) {
+                closeConverterModal();
+            }
+        });
+        
+        // Escape tugmasi bilan modalni yopish
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && converterModal.style.display === 'flex') {
+                closeConverterModal();
+            }
+        });
         
         // ============================================
         // EVENT LISTENERS
